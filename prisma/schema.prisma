@@ -4,6 +4,9 @@
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
+
+//criando migracao =  npx prisma migrate dev NOME_MIGRACAO init
+// puxando dados do db = npx prisma db pull
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,11 +16,72 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Venda {
-  id String @id @default(uuid()) @map("id")
-  nomeProduto String @db.VarChar(200) @map("nome_produto")
-  valorProduto Decimal @db.Money @default(0.0) @map("valor_venda")
-  quantidadeComprada Int @map("qtd_comprada")
-  dataVenda DateTime @default(now()) @map("dt_venda")
-  @@map("tb_venda")
+model Event {
+  id String @id @default(uuid())
+  name String @db.VarChar(200)
+  description String @db.VarChar(200)
+  price Float 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt 
+  Spot Spot[]
+  
+  @@map("tb_evento")
+}
+
+model Spot {
+  id String @id @default(uuid())
+  name String @db.VarChar(191)
+  eventId String 
+  status SpotStatus
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt 
+  
+  Ticket Ticket? //one to one
+  ReservationHistory ReservationHistory[] //many to one
+  Event Event @relation(fields: [eventId], references: [id])
+
+
+  @@map("tb_assento")
+}
+
+enum SpotStatus {
+  available 
+  reserved
+}
+
+model Ticket {
+  id String @id @default(uuid())
+  email String 
+  ticketKind TicketKind 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt 
+  spotId String
+  
+  Spot Spot @relation(fields: [spotId], references: [id])
+
+  @@unique([spotId]) //one to one
+  @@map("tb_ticket")
+}
+
+enum TicketKind {
+  full 
+  half
+}
+
+model ReservationHistory {
+  id String @id @default(uuid())
+  email String 
+  ticketKind TicketKind 
+  status TicketStatus 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt 
+  spotId String
+
+  Spot Spot @relation(fields: [spotId], references: [id])
+  @@map("tb_resevation_history")
+}
+
+enum TicketStatus {
+  reserved 
+  canceled
 }

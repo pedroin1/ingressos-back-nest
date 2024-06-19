@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, SpotStatus, TicketStatus } from '@prisma/client';
+import {
+  Prisma,
+  PrismaClient,
+  Spot,
+  SpotStatus,
+  TicketStatus,
+} from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { ReserveSpotDto } from './dto/reserve-spot-dto';
@@ -33,72 +39,115 @@ export class EventsService {
   }
 
   async reserveSpots(eventId: string, reserveSpotDto: ReserveSpotDto) {
-    const spots = await this.prismaService.spot.findMany({
-      where: {
-        name: {
-          in: reserveSpotDto.spots,
-        },
-        eventId: eventId,
-      },
-    });
+    const spotsFromDB = await this.findSpotsByNameAndEventId(
+      eventId,
+      reserveSpotDto.spots,
+    );
 
-    if (spots.length !== reserveSpotDto.spots.length) {
+    if (spotsFromDB.length !== reserveSpotDto.spots.length) {
       //TODO: Retornar uma lista dos spots que nao foram encontrados
       throw new Error('Os assentos estão invalidos!');
     }
 
     try {
-      //criando uma transação para salvar os registros de reserva e os tickets
-      const tickets = await this.prismaService.$transaction(
+      const transactionResult = await this.prismaService.$transaction(
         async (prisma) => {
-          //salvando os registros
-          await prisma.reservationHistory.createMany({
-            data: spots.map((spot) => ({
-              spotId: spot.id,
-              email: reserveSpotDto.email,
-              ticketKind: reserveSpotDto.ticketKind,
-              status: TicketStatus.reserved,
-            })),
-          });
-
-          //reservando os acentos
-          await prisma.spot.updateMany({
-            where: {
-              id: {
-                in: spots.map((spot) => spot.id),
-              },
-            },
-            data: {
-              status: SpotStatus.reserved,
-            },
-          });
-
-          //usei promisse .all para retornar os ids, o cratemany so retorna o count de itens inseridos
-          const tickets = Promise.all(
-            spots.map((spot) => {
-              return prisma.ticket.create({
-                data: {
-                  spotId: spot.id,
-                  email: reserveSpotDto.email,
-                  ticketKind: reserveSpotDto.ticketKind,
-                },
-              });
-            }),
+          await this.createReservationHistory(
+            prisma,
+            reserveSpotDto,
+            spotsFromDB,
+          );
+          await this.updateSpotStatusToReserved(prisma, spotsFromDB);
+          const createdTickets = await this.createTickets(
+            prisma,
+            reserveSpotDto,
+            spotsFromDB,
           );
 
-          return tickets;
+          return createdTickets;
         },
-        { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
       );
-      return tickets;
+
+      return transactionResult;
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        switch (error.code) {
-          case 'P2002': //erro de concorrencia
-          case 'P2034': //erro de trasnsaction conflit
-            throw new Error('Os assentos ja estao reservados');
-        }
+      this.handlePrismaErrors(error);
+    }
+  }
+
+  private async findSpotsByNameAndEventId(
+    eventId: string,
+    spotNames: string[],
+  ) {
+    return await this.prismaService.spot.findMany({
+      where: {
+        name: {
+          in: spotNames,
+        },
+        eventId: eventId,
+      },
+    });
+  }
+
+  private async createReservationHistory(
+    prisma: any,
+    reserveSpotDto: ReserveSpotDto,
+    spots: Spot[],
+  ) {
+    const { email, ticketKind } = reserveSpotDto;
+    await prisma.reservationHistory.createMany({
+      data: spots.map((spot) => ({
+        spotId: spot.id,
+        email,
+        ticketKind,
+        status: TicketStatus.reserved,
+      })),
+    });
+  }
+
+  private async updateSpotStatusToReserved(prisma: any, spots: Spot[]) {
+    await prisma.spot.updateMany({
+      where: {
+        id: {
+          in: spots.map((spot) => spot.id),
+        },
+      },
+      data: {
+        status: SpotStatus.reserved,
+      },
+    });
+  }
+
+  private async createTickets(
+    prisma: any,
+    reserveSpotDto: ReserveSpotDto,
+    spots: Spot[],
+  ) {
+    const { email, ticketKind } = reserveSpotDto;
+    const tickets = await Promise.all(
+      spots.map((spot) => {
+        return prisma.ticket.create({
+          data: {
+            spotId: spot.id,
+            email,
+            ticketKind,
+          },
+        });
+      }),
+    );
+
+    return tickets;
+  }
+
+  private handlePrismaErrors(error: Error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      switch (error.code) {
+        case 'P2002': // erro de concorrência
+        case 'P2034': // erro de conflito de transação
+          throw new Error('Os assentos já estão reservados');
+        default:
+          throw error;
       }
+    } else {
       throw error;
     }
   }

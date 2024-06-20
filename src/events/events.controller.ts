@@ -7,6 +7,8 @@ import {
   Param,
   Delete,
   Put,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -24,11 +26,24 @@ export class EventsController {
   }
 
   @Post(':eventId/reserve')
-  reserveSpots(
+  async reserveSpots(
     @Param('eventId') eventId: string,
     @Body() reserveSpots: ReserveSpotDto,
   ) {
-    return this.eventsService.reserveSpots(eventId, reserveSpots);
+    try {
+      return await this.eventsService.reserveSpots(eventId, reserveSpots);
+    } catch (error: unknown) {
+      throw new HttpException(
+        {
+          status: HttpStatus.BAD_REQUEST,
+          error: (error as Error).message,
+        },
+        HttpStatus.FORBIDDEN,
+        {
+          cause: (error as Error).message,
+        },
+      );
+    }
   }
 
   @Get()

@@ -12,7 +12,6 @@ export class SpotsService {
     const existEvent = await this.prismaService.event.findFirst({
       where: { id: eventId },
     });
-    console.log(eventId);
 
     if (!existEvent) {
       throw new Error('Evento não encontrado');
@@ -31,7 +30,6 @@ export class SpotsService {
     const existEvent = await this.prismaService.event.findFirst({
       where: { id: eventId },
     });
-    console.log(eventId);
 
     if (!existEvent) {
       throw new Error('Evento não encontrado');

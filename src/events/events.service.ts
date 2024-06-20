@@ -39,14 +39,19 @@ export class EventsService {
   }
 
   async reserveSpots(eventId: string, reserveSpotDto: ReserveSpotDto) {
-    const spotsFromDB = await this.findSpotsByNameAndEventId(
+    const spotsAvailableFromDB = await this.findSpotsByNameAndEventId(
       eventId,
       reserveSpotDto.spots,
     );
 
-    if (spotsFromDB.length !== reserveSpotDto.spots.length) {
-      //TODO: Retornar uma lista dos spots que nao foram encontrados
-      throw new Error('Os assentos estão invalidos!');
+    if (spotsAvailableFromDB.length !== reserveSpotDto.spots.length) {
+      const invalidSpots = reserveSpotDto.spots.filter(
+        (spot) => !spotsAvailableFromDB.map((spot) => spot.name).includes(spot),
+      );
+
+      throw new Error(
+        `Os assentos '${invalidSpots.toString()}' Já Estão Reservados!`,
+      );
     }
 
     try {
@@ -55,13 +60,13 @@ export class EventsService {
           await this.createReservationHistory(
             prisma,
             reserveSpotDto,
-            spotsFromDB,
+            spotsAvailableFromDB,
           );
-          await this.updateSpotStatusToReserved(prisma, spotsFromDB);
+          await this.updateSpotStatusToReserved(prisma, spotsAvailableFromDB);
           const createdTickets = await this.createTickets(
             prisma,
             reserveSpotDto,
-            spotsFromDB,
+            spotsAvailableFromDB,
           );
 
           return createdTickets;
@@ -83,6 +88,7 @@ export class EventsService {
         name: {
           in: spotNames,
         },
+        status: 'available',
         eventId: eventId,
       },
     });

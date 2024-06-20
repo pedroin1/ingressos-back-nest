@@ -9,6 +9,8 @@ export class ReserveSpotDto {
   @IsTicketKindValid()
   ticketKind: TicketKind;
 
-  @IsEmail(undefined, { message: 'Digite um email valido.' })
+  @IsEmail(undefined, {
+    message: 'Digite um email valido para a reserva do assento.',
+  })
   email: string;
 }

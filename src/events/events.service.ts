@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Event, Prisma, Spot, SpotStatus, TicketStatus } from '@prisma/client';
+import { GenericException } from 'src/exceptionsHandler/generic-exception-handler';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { CreatedEventDto } from './dto/created-event-dto';
@@ -60,7 +61,7 @@ export class EventsService {
         (spot) => !spotsAvailableFromDB.map((spot) => spot.name).includes(spot),
       );
 
-      throw new Error(
+      throw new GenericException(
         `Os assentos '${invalidSpots.toString()}' Já Estão Reservados!`,
       );
     }

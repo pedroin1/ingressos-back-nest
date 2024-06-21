@@ -3,8 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  HttpException,
-  HttpStatus,
   Param,
   Post,
   Put,
@@ -29,20 +27,7 @@ export class EventsController {
     @Param('eventId') eventId: string,
     @Body() reserveSpots: ReserveSpotDto,
   ) {
-    try {
-      return await this.eventsService.reserveSpots(eventId, reserveSpots);
-    } catch (error: unknown) {
-      throw new HttpException(
-        {
-          status: HttpStatus.BAD_REQUEST,
-          error: (error as Error).message,
-        },
-        HttpStatus.FORBIDDEN,
-        {
-          cause: (error as Error).message,
-        },
-      );
-    }
+    return await this.eventsService.reserveSpots(eventId, reserveSpots);
   }
 
   @Get()

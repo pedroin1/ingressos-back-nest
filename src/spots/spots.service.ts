@@ -82,7 +82,7 @@ export class SpotsService {
     const spotRemoved = await this.prismaService.spot.delete({
       where: { id: spotId, eventId },
     });
-    return `O assento "${spotRemoved.name} foi removido com sucesso!"`;
+    return `O assento "${spotRemoved.name}" foi removido com sucesso!`;
   }
 
   private convertSpotListToDto(spotList: Spot[]): CreatedSpotDto[] {

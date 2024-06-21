@@ -1,13 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import {
-  Prisma,
-  PrismaClient,
-  Spot,
-  SpotStatus,
-  TicketStatus,
-} from '@prisma/client';
+import { Event, Prisma, Spot, SpotStatus, TicketStatus } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
+import { CreatedEventDto } from './dto/created-event-dto';
 import { ReserveSpotDto } from './dto/reserve-spot-dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 
@@ -15,27 +10,43 @@ import { UpdateEventDto } from './dto/update-event.dto';
 export class EventsService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  create(createEventDto: CreateEventDto) {
-    return this.prismaService.event.create({ data: createEventDto });
+  async create(createEventDto: CreateEventDto) {
+    const eventCreated = (await this.prismaService.event.create({
+      data: createEventDto,
+    })) as Event;
+
+    return this.convertEventToDto(eventCreated);
   }
 
-  findAll() {
-    return this.prismaService.event.findMany();
+  async findAll() {
+    const eventsList = await this.prismaService.event.findMany();
+
+    return this.convertEventListToDto(eventsList);
   }
 
-  findOne(id: string) {
-    return this.prismaService.event.findFirst({ where: { id: id } });
+  async findOne(id: string) {
+    const event = await this.prismaService.event.findFirst({
+      where: { id: id },
+    });
+
+    return this.convertEventToDto(event);
   }
 
-  update(id: string, updateEventDto: UpdateEventDto) {
-    return this.prismaService.event.update({
+  async update(id: string, updateEventDto: UpdateEventDto) {
+    const eventUpdated = await this.prismaService.event.update({
       where: { id: id },
       data: updateEventDto,
     });
+
+    return this.convertEventToDto(eventUpdated);
   }
 
-  remove(id: string) {
-    return this.prismaService.event.delete({ where: { id: id } });
+  async remove(id: string) {
+    const eventRemoved = await this.prismaService.event.delete({
+      where: { id: id },
+    });
+
+    return `Evento "${eventRemoved.name} removido com sucesso!" `;
   }
 
   async reserveSpots(eventId: string, reserveSpotDto: ReserveSpotDto) {
@@ -72,7 +83,6 @@ export class EventsService {
           return createdTickets;
         },
       );
-
       return transactionResult;
     } catch (error) {
       this.handlePrismaErrors(error);
@@ -156,5 +166,18 @@ export class EventsService {
     } else {
       throw error;
     }
+  }
+
+  private convertEventListToDto(eventList: Event[]): CreatedEventDto[] {
+    return eventList.map((event) => this.convertEventToDto(event));
+  }
+
+  private convertEventToDto(event: Event): CreatedEventDto {
+    return new CreatedEventDto(
+      event.id,
+      event.name,
+      event.description,
+      event.price,
+    );
   }
 }

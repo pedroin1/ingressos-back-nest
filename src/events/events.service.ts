@@ -11,12 +11,14 @@ import { UpdateEventDto } from './dto/update-event.dto';
 export class EventsService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async create(createEventDto: CreateEventDto) {
-    const eventCreated = (await this.prismaService.event.create({
-      data: createEventDto,
-    })) as Event;
+  async create(createEventDto: CreateEventDto[]) {
+    const eventCreated = await this.prismaService.event.createManyAndReturn({
+      data: createEventDto.map((event) => ({
+        ...event,
+      })),
+    });
 
-    return this.convertEventToDto(eventCreated);
+    return this.convertEventListToDto(eventCreated);
   }
 
   async findAll() {
@@ -56,6 +58,8 @@ export class EventsService {
       reserveSpotDto.spots,
     );
 
+    console.log(spotsAvailableFromDB);
+
     if (spotsAvailableFromDB.length !== reserveSpotDto.spots.length) {
       const invalidSpots = reserveSpotDto.spots.filter(
         (spot) => !spotsAvailableFromDB.map((spot) => spot.name).includes(spot),
@@ -94,6 +98,8 @@ export class EventsService {
     eventId: string,
     spotNames: string[],
   ) {
+    console.log(spotNames);
+
     return await this.prismaService.spot.findMany({
       where: {
         name: {

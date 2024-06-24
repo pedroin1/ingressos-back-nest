@@ -1,6 +1,7 @@
 services:
   postgres:
     container_name: container_ingressos
+    restart: always
     image: postgres:latest
     ports:
       - '5432:5432'

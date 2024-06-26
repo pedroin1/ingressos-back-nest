@@ -58,8 +58,6 @@ export class EventsService {
       reserveSpotDto.spots,
     );
 
-    console.log(spotsAvailableFromDB);
-
     if (spotsAvailableFromDB.length !== reserveSpotDto.spots.length) {
       const invalidSpots = reserveSpotDto.spots.filter(
         (spot) => !spotsAvailableFromDB.map((spot) => spot.name).includes(spot),
@@ -98,8 +96,6 @@ export class EventsService {
     eventId: string,
     spotNames: string[],
   ) {
-    console.log(spotNames);
-
     return await this.prismaService.spot.findMany({
       where: {
         name: {
@@ -184,7 +180,11 @@ export class EventsService {
       event.id,
       event.name,
       event.description,
+      event.location,
+      event.image_url,
+      event.eventDate,
       event.price,
+      event.rating,
     );
   }
 }

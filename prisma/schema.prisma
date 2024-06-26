@@ -1,12 +1,7 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+//create migration - npx prisma migrate dev init
+//pull db - npx prisma db pull
+// update db - npx prisma migrate delpy
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
-// criando migracao =  npx prisma migrate dev NOME_MIGRACAO init
-// puxando dados do db = npx prisma db pull
-// atualizando o projeto com as migracoes existente npx prisma migrate deploy 
 generator client {
   provider = "prisma-client-js"
 }
@@ -20,32 +15,30 @@ model Event {
   id          String   @id @default(uuid())
   name        String   @db.VarChar(200)
   description String   @db.VarChar(200)
-  price       Float
+  price       Float    @default(0)
   createdAt   DateTime @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+  eventDate   DateTime @db.Timestamptz(6)
+  image_url   String?  @db.VarChar(200)
+  location    String   @db.VarChar(200)
+  rating      Float    @default(0)
   Spot        Spot[]
 
   @@map("tb_evento")
 }
 
 model Spot {
-  id        String     @id @default(uuid())
-  name      String     @db.VarChar(191)
-  eventId   String
-  status    SpotStatus
-  createdAt DateTime   @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime   @updatedAt @db.Timestamptz(3)
-
-  Ticket             Ticket? //one to one
-  ReservationHistory ReservationHistory[] //many to one
+  id                 String               @id @default(uuid())
+  name               String               @db.VarChar(191)
+  eventId            String
+  status             SpotStatus
+  createdAt          DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime             @updatedAt @db.Timestamptz(3)
   Event              Event                @relation(fields: [eventId], references: [id])
+  ReservationHistory ReservationHistory[]
+  Ticket             Ticket?
 
   @@map("tb_assento")
-}
-
-enum SpotStatus {
-  available
-  reserved
 }
 
 model Ticket {
@@ -54,31 +47,33 @@ model Ticket {
   ticketKind TicketKind
   createdAt  DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt  DateTime   @updatedAt @db.Timestamptz(3)
-  spotId     String
+  spotId     String     @unique
+  Spot       Spot       @relation(fields: [spotId], references: [id])
 
-  Spot Spot @relation(fields: [spotId], references: [id])
-
-  @@unique([spotId]) //one to one
   @@map("tb_ticket")
-}
-
-enum TicketKind {
-  full
-  half
 }
 
 model ReservationHistory {
   id         String       @id @default(uuid())
   email      String
   ticketKind TicketKind
-  status     TicketStatus
   createdAt  DateTime     @default(now()) @db.Timestamptz(3)
   updatedAt  DateTime     @updatedAt @db.Timestamptz(3)
   spotId     String
-
-  Spot Spot @relation(fields: [spotId], references: [id])
+  status     TicketStatus
+  Spot       Spot         @relation(fields: [spotId], references: [id])
 
   @@map("tb_resevation_history")
+}
+
+enum SpotStatus {
+  available
+  reserved
+}
+
+enum TicketKind {
+  full
+  half
 }
 
 enum TicketStatus {

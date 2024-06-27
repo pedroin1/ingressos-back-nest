@@ -51,9 +51,13 @@ export class SpotsService {
   }
 
   async findAll(eventId: string) {
-    const spotList = await this.prismaService.spot.findMany({
-      where: { eventId },
-    });
+    //ordenando itens por letra e numero, A1,A2,A3,A4,A5....
+    const spotList = (await this.prismaService.$queryRaw`
+      SELECT * FROM sc_ingressos.tb_assento 
+      WHERE tb_assento."eventId" = ${eventId}
+      ORDER BY
+        substring(name FROM '^[A-Za-z]+')::text,  -- Ordena por letras
+        substring(name FROM '[0-9]+')::int;`) as Spot[];
     return this.convertSpotListToDto(spotList);
   }
 

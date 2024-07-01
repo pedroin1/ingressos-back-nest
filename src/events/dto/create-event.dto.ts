@@ -1,4 +1,4 @@
-import { IsDateString, IsNotEmpty, IsPositive } from 'class-validator';
+import { Allow, IsDateString, IsNotEmpty, IsPositive } from 'class-validator';
 
 export class CreateEventDto {
   @IsNotEmpty({ message: 'O Nome do evento é obrigatorio' })
@@ -10,6 +10,7 @@ export class CreateEventDto {
   @IsNotEmpty({ message: 'O Local da organização do evento é obrigatorio' })
   location: string;
 
+  @Allow()
   image_url: string;
 
   @IsNotEmpty({ message: 'A Data do evento é obrigatoria' })

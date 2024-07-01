@@ -5,7 +5,7 @@ export class CreatedEventDto {
     readonly description: string,
     readonly location: string,
     readonly image_url: string,
-    readonly date: Date,
+    readonly date: String,
     readonly price: number,
     readonly rating: number,
   ) {}

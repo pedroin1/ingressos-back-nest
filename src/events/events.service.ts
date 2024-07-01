@@ -5,20 +5,25 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { CreatedEventDto } from './dto/created-event-dto';
 import { ReserveSpotDto } from './dto/reserve-spot-dto';
+import {
+  transformFromPrismaDateTime,
+  transformToPrismaDateTime,
+} from 'src/utils/Date';
 import { UpdateEventDto } from './dto/update-event.dto';
 
 @Injectable()
 export class EventsService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async create(createEventDto: CreateEventDto[]) {
-    const eventCreated = await this.prismaService.event.createManyAndReturn({
-      data: createEventDto.map((event) => ({
-        ...event,
-      })),
+  async create(createEventDto: CreateEventDto) {
+    const eventCreated = await this.prismaService.event.create({
+      data: {
+        ...createEventDto,
+        eventDate: transformToPrismaDateTime(createEventDto.eventDate),
+      },
     });
 
-    return this.convertEventListToDto(eventCreated);
+    return this.convertEventToDto(eventCreated);
   }
 
   async findAll() {
@@ -182,7 +187,7 @@ export class EventsService {
       event.description,
       event.location,
       event.image_url,
-      event.eventDate,
+      transformFromPrismaDateTime(event.eventDate),
       event.price,
       event.rating,
     );
